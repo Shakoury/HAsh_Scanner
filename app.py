@@ -386,31 +386,37 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         }
     }
 
-        /* CSS-Only Toggle - No JavaScript Required */
-        #viewToggle:checked ~ * #simpleView,
-        #viewToggle:not(:checked) ~ * #technicalView {
-            display: none !important;
-        }
-        
-        #viewToggle:checked ~ * #technicalView,
-        #viewToggle:not(:checked) ~ * #simpleView {
+        /* CSS-Only Toggle */
+        #viewToggle:checked ~ #technicalView {
             display: block !important;
         }
         
-        #viewToggle:checked ~ * .simple-mode-text {
+        #viewToggle:checked ~ #simpleView {
             display: none !important;
         }
         
-        #viewToggle:checked ~ * .tech-mode-text {
-            display: inline !important;
+        #viewToggle:not(:checked) ~ #simpleView {
+            display: block !important;
         }
         
-        #viewToggle:not(:checked) ~ * .simple-mode-text {
-            display: inline !important;
-        }
-        
-        #viewToggle:not(:checked) ~ * .tech-mode-text {
+        #viewToggle:not(:checked) ~ #technicalView {
             display: none !important;
+        }
+        
+        #viewToggle:checked + label .simple-text {
+            display: none;
+        }
+        
+        #viewToggle:checked + label .tech-text {
+            display: inline;
+        }
+        
+        #viewToggle:not(:checked) + label .simple-text {
+            display: inline;
+        }
+        
+        #viewToggle:not(:checked) + label .tech-text {
+            display: none;
         }
         
         label[for="viewToggle"]:hover {
@@ -456,28 +462,32 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
     {% if results %}
     <div class="results-card">
+        
+        <!-- CSS Toggle Checkbox -->
+        <input type="checkbox" id="viewToggle" style="display: none;">
+        <label for="viewToggle" style="
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            user-select: none;
+            transition: all 0.3s ease;
+            margin: 20px auto;
+            display: block;
+            width: fit-content;
+        ">
+            <span class="simple-text">💡 Switch to Technical View</span>
+            <span class="tech-text" style="display: none;">🔙 Switch to Simple View</span>
+        </label>
+
 
         <!-- Simple/Technical Mode Toggle -->
-        <!-- CSS-Only Toggle (No JavaScript - Secure!) -->
-        <div style="text-align: center; margin: 20px 0;">
-            <input type="checkbox" id="viewToggle" style="display: none;">
-            <label for="viewToggle" style="
-                display: inline-block;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 12px 24px;
-                border-radius: 8px;
-                cursor: pointer;
-                font-size: 16px;
-                font-weight: 600;
-                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-                user-select: none;
-                transition: all 0.3s ease;
-            ">
-                <span class="simple-mode-text">💡 Switch to Technical View</span>
-                <span class="tech-mode-text" style="display: none;">🔙 Switch to Simple View</span>
-            </label>
-        </div>
+
 
         <!-- Simple Mode (Default View) -->
         <div id="simpleView" class="view-content">
