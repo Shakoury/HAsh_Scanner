@@ -151,6 +151,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             gap: 10px;
             box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
             margin-left: 10px;
+            text-decoration: none;
+            user-select: none;
         }
         
         .reset-btn:hover {
