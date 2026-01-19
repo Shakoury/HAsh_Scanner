@@ -385,6 +385,38 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             grid-template-columns: 1fr;
         }
     }
+
+        /* CSS-Only Toggle - No JavaScript Required */
+        #viewToggle:checked ~ * #simpleView,
+        #viewToggle:not(:checked) ~ * #technicalView {
+            display: none !important;
+        }
+        
+        #viewToggle:checked ~ * #technicalView,
+        #viewToggle:not(:checked) ~ * #simpleView {
+            display: block !important;
+        }
+        
+        #viewToggle:checked ~ * .simple-mode-text {
+            display: none !important;
+        }
+        
+        #viewToggle:checked ~ * .tech-mode-text {
+            display: inline !important;
+        }
+        
+        #viewToggle:not(:checked) ~ * .simple-mode-text {
+            display: inline !important;
+        }
+        
+        #viewToggle:not(:checked) ~ * .tech-mode-text {
+            display: none !important;
+        }
+        
+        label[for="viewToggle"]:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
 </style>
 </head>
 <body>
@@ -426,24 +458,29 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <div class="results-card">
 
         <!-- Simple/Technical Mode Toggle -->
+        <!-- CSS-Only Toggle (No JavaScript - Secure!) -->
         <div style="text-align: center; margin: 20px 0;">
-            <button onclick="toggleView()" id="viewToggle" style="
+            <input type="checkbox" id="viewToggle" style="display: none;">
+            <label for="viewToggle" style="
+                display: inline-block;
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 color: white;
-                border: none;
                 padding: 12px 24px;
                 border-radius: 8px;
                 cursor: pointer;
                 font-size: 16px;
                 font-weight: 600;
                 box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+                user-select: none;
+                transition: all 0.3s ease;
             ">
-                💡 Switch to Technical View
-            </button>
+                <span class="simple-mode-text">💡 Switch to Technical View</span>
+                <span class="tech-mode-text" style="display: none;">🔙 Switch to Simple View</span>
+            </label>
         </div>
 
         <!-- Simple Mode (Default View) -->
-        <div id="simpleView">
+        <div id="simpleView" class="view-content">
             {% if simple_explanation %}
             <div style="text-align: center; margin: 30px 0;">
                 <div style="font-size: 64px; margin-bottom: 15px;">{{ simple_explanation.icon }}</div>
@@ -478,7 +515,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         </div>
 
         <!-- Technical Mode (Hidden by Default) -->
-        <div id="technicalView" style="display: none;">
+        <div id="technicalView" class="view-content" style="display: none;">
         <div class="verdict-header">
             <div class="verdict-title verdict-{{ results.risk_level | e }}">
                 {{ results.verdict | e }}
@@ -557,23 +594,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     {% endif %}
 </div>
 
-<script>
-function toggleView() {
-    const simpleView = document.getElementById('simpleView');
-    const technicalView = document.getElementById('technicalView');
-    const toggleBtn = document.getElementById('viewToggle');
-    
-    if (simpleView.style.display === 'none') {
-        simpleView.style.display = 'block';
-        technicalView.style.display = 'none';
-        toggleBtn.textContent = 'Switch to Technical View';
-    } else {
-        simpleView.style.display = 'none';
-        technicalView.style.display = 'block';
-        toggleBtn.textContent = 'Switch to Simple View';
-    }
-}
-</script>
+
 </body>
 </html>"""
 
