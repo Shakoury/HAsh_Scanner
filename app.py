@@ -140,17 +140,17 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             color: white;
             border: none;
-            padding: 16px 32px;
-            font-size: 18px;
+            padding: 18px 36px;
+            font-size: 1rem;
             font-weight: 600;
-            border-radius: 12px;
+            border-radius: 16px;
             cursor: pointer;
             transition: all 0.3s ease;
             display: inline-flex;
             align-items: center;
             gap: 10px;
             box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
-            margin-left: 10px;
+            margin-left: 0;
             text-decoration: none;
             user-select: none;
         }
