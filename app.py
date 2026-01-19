@@ -488,9 +488,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             display: block;
             width: fit-content;
         ">
-            <span class="simple-text">💡 Switch to Technical View</span>
-            <span class="tech-text" style="display: none;">🔙 Switch to Simple View</span>
-        </label>
+        <span class="simple-text">💡 Switch to Technical View</span><span class="tech-text">🔙 Switch to Simple View</span></label>
 
 
         <!-- Simple/Technical Mode Toggle -->
