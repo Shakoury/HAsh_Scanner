@@ -135,6 +135,28 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         transition: all 0.3s ease;
         box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
     }
+        
+        .reset-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
+            margin-left: 10px;
+        }
+        
+        .reset-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(245, 87, 108, 0.6);
+        }
 
     .scan-btn:hover {
         transform: translateY(-2px);
@@ -383,6 +405,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     maxlength="2048"
                 >
                 <button type="submit" class="scan-btn">Scan Now</button>
+                <button type="button" class="reset-btn" onclick="window.location.href='/'">
+                    <span class="scan-icon">🔄</span>
+                    Reset
+                </button>
             </div>
         </form>
     </div>
