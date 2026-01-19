@@ -20,7 +20,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta http-equiv="X-Frame-Options" content="DENY">
 <meta http-equiv="X-XSS-Protection" content="1; mode=block">
@@ -500,6 +500,24 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     {% endif %}
     {% endif %}
 </div>
+
+<script>
+function toggleView() {
+    const simpleView = document.getElementById('simpleView');
+    const technicalView = document.getElementById('technicalView');
+    const toggleBtn = document.getElementById('viewToggle');
+    
+    if (simpleView.style.display === 'none') {
+        simpleView.style.display = 'block';
+        technicalView.style.display = 'none';
+        toggleBtn.textContent = 'Switch to Technical View';
+    } else {
+        simpleView.style.display = 'none';
+        technicalView.style.display = 'block';
+        toggleBtn.textContent = 'Switch to Simple View';
+    }
+}
+</script>
 </body>
 </html>"""
 
@@ -611,12 +629,96 @@ def validate_url(url):
     
     return url, None
 
+
+def get_simple_explanation(results):
+    """Generate simple, non-technical explanation of scan results"""
+    score = results.get('risk_score', 0)
+    reasons = results.get('reasons', [])
+    
+    # Determine risk level
+    if score >= 35:
+        level = 'dangerous'
+        icon = '🚨'
+        title = 'HIGH RISK - This is likely a SCAM'
+    elif score >= 20:
+        level = 'suspicious'
+        icon = '⚠️'
+        title = 'SUSPICIOUS - Be Very Careful'
+    elif score >= 10:
+        level = 'minor'
+        icon = '⚡'
+        title = 'MINOR CONCERNS - Proceed with Caution'
+    else:
+        level = 'safe'
+        icon = '✅'
+        title = 'APPEARS SAFE'
+    
+    # Simple explanations
+    simple_reasons = []
+    for reason in reasons:
+        if 'brand' in reason.lower() or 'impersonation' in reason.lower():
+            simple_reasons.append("This site is pretending to be a well-known company, but it's FAKE")
+        elif 'tld' in reason.lower() or '.tk' in reason or '.ml' in reason:
+            simple_reasons.append("The web address ending is commonly used by scammers")
+        elif 'domain age' in reason.lower() or 'new' in reason.lower():
+            simple_reasons.append("This site was created very recently (scammers create new sites)")
+        elif 'typo' in reason.lower():
+            simple_reasons.append("The web address has a sneaky spelling trick to fool you")
+        elif 'ip' in reason.lower() or 'address' in reason.lower():
+            simple_reasons.append("Real companies don't use number addresses like this")
+        elif 'subdomain' in reason.lower():
+            simple_reasons.append("The web address is unusually long and complicated")
+        elif 'path' in reason.lower() or 'login' in reason.lower():
+            simple_reasons.append("This page is asking for passwords on a suspicious site")
+        elif 'ssl' in reason.lower() or 'https' in reason.lower():
+            simple_reasons.append("This site doesn't use secure encryption (no padlock icon)")
+        else:
+            # Generic fallback
+            simple_reasons.append(reason)
+    
+    # Recommendations based on level
+    recommendations = {
+        'dangerous': [
+            "❌ Don't enter passwords, credit cards, or personal information",
+            "❌ Close this page immediately",
+            "❌ If you got this link in an email or text message, DELETE it",
+            "✅ Type the real company's website address yourself instead"
+        ],
+        'suspicious': [
+            "⚠️ Don't trust this site with sensitive information",
+            "⚠️ Double-check the web address is spelled correctly",
+            "⚠️ When in doubt, type the website address yourself",
+            "⚠️ Don't download anything from this site"
+        ],
+        'minor': [
+            "⚡ The site looks mostly safe, but has some unusual features",
+            "⚡ Verify the web address is exactly correct",
+            "⚡ Look for the padlock icon in your browser",
+            "⚡ Be careful with personal information"
+        ],
+        'safe': [
+            "✅ This site appears to be legitimate",
+            "✅ Always verify you're on the correct website",
+            "✅ Look for the padlock icon for a secure connection"
+        ]
+    }
+    
+    return {
+        'icon': icon,
+        'title': title,
+        'level': level,
+        'simple_reasons': simple_reasons[:5],  # Top 5 reasons
+        'recommendations': recommendations[level]
+    }
+
+
 @app.route('/', methods=['GET'])
 @security.protect
 def index():
     url = request.args.get('url', '').strip()
     results = None
     error = None
+    simple_explanation = None
     original_input = url  # Store original for display
     
     if url:
@@ -630,13 +732,14 @@ def index():
             try:
                 # Scan the URL
                 results = scanner.scan(validated_url)
+                simple_explanation = get_simple_explanation(results)
                 url = validated_url
             except Exception as e:
                 error = "An error occurred while scanning the URL. The site may be unreachable or invalid."
                 # Log the error for debugging (in production, use proper logging)
                 app.logger.error(f"Scan error for {validated_url}: {str(e)}")
     
-    return render_template_string(HTML_TEMPLATE, url=url or '', results=results, error=error)
+    return render_template_string(HTML_TEMPLATE, url=url or '', results=results, error=error, simple_explanation=simple_explanation if results else None)
 
 @app.after_request
 def add_security_headers(response):

@@ -18,6 +18,27 @@ class EnhancedScanner(LegitimacyScanner):
     def __init__(self, patterns_file='learned_patterns.json'):
         super().__init__()
         self.learned_patterns = self._load_patterns(patterns_file)
+
+
+    # Simple explanations for non-technical users
+    SIMPLE_EXPLANATIONS = {
+        'brand_impersonation': "This site is pretending to be {brand}, but it's FAKE",
+        'suspicious_tld': "The web address ending ({tld}) is commonly used by scammers",
+        'new_domain': "This site was created just {days} days ago",
+        'typosquatting': "The web address has a sneaky spelling trick",
+        'ip_address': "Real companies don't use number addresses - this is suspicious",
+        'excessive_subdomains': "The web address is unusually long and complicated",
+        'suspicious_path': "This page is asking for login info on a suspicious site",
+        'no_ssl': "This site doesn't use secure encryption (no padlock icon)",
+    }
+    
+    SIMPLE_RECOMMENDATIONS = {
+        'dangerous': "🚨 Don't enter passwords or personal info. Close this page immediately.",
+        'suspicious': "⚠️ Be very careful. Don't trust this with sensitive information.",
+        'minor': "⚡ Probably safe, but verify the web address is correct.",
+        'safe': "✅ This appears to be a legitimate website.",
+    }
+
     
     def _load_patterns(self, filename: str) -> Dict:
         """Load ML-learned patterns"""
