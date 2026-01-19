@@ -1,0 +1,279 @@
+{
+  "high_risk_tlds": [],
+  "phishing_keywords": [],
+  "path_indicators": [
+    {
+      "keyword": "html",
+      "score": 20,
+      "frequency": 10.05,
+      "count": 15716
+    },
+    {
+      "keyword": "login",
+      "score": 20,
+      "frequency": 9.41,
+      "count": 14712
+    },
+    {
+      "keyword": "index",
+      "score": 20,
+      "frequency": 8.6,
+      "count": 13452
+    },
+    {
+      "keyword": "paypal",
+      "score": 20,
+      "frequency": 7.34,
+      "count": 11482
+    },
+    {
+      "keyword": "images",
+      "score": 19,
+      "frequency": 4.82,
+      "count": 7537
+    },
+    {
+      "keyword": "content",
+      "score": 16,
+      "frequency": 4.12,
+      "count": 6446
+    },
+    {
+      "keyword": "webscr",
+      "score": 14,
+      "frequency": 3.65,
+      "count": 5712
+    },
+    {
+      "keyword": "includes",
+      "score": 12,
+      "frequency": 3.21,
+      "count": 5026
+    },
+    {
+      "keyword": "info",
+      "score": 12,
+      "frequency": 3.0,
+      "count": 4694
+    },
+    {
+      "keyword": "admin",
+      "score": 11,
+      "frequency": 2.86,
+      "count": 4468
+    },
+    {
+      "keyword": "secure",
+      "score": 11,
+      "frequency": 2.77,
+      "count": 4329
+    },
+    {
+      "keyword": "update",
+      "score": 8,
+      "frequency": 2.09,
+      "count": 3262
+    },
+    {
+      "keyword": "plugins",
+      "score": 7,
+      "frequency": 1.83,
+      "count": 2855
+    },
+    {
+      "keyword": "dispatch",
+      "score": 6,
+      "frequency": 1.73,
+      "count": 2702
+    },
+    {
+      "keyword": "site",
+      "score": 6,
+      "frequency": 1.51,
+      "count": 2356
+    },
+    {
+      "keyword": "account",
+      "score": 5,
+      "frequency": 1.39,
+      "count": 2179
+    },
+    {
+      "keyword": "themes",
+      "score": 5,
+      "frequency": 1.37,
+      "count": 2141
+    },
+    {
+      "keyword": "dropbox",
+      "score": 5,
+      "frequency": 1.33,
+      "count": 2082
+    },
+    {
+      "keyword": "remax",
+      "score": 5,
+      "frequency": 1.28,
+      "count": 2010
+    },
+    {
+      "keyword": "gate",
+      "score": 5,
+      "frequency": 1.28,
+      "count": 1996
+    },
+    {
+      "keyword": "home",
+      "score": 5,
+      "frequency": 1.27,
+      "count": 1989
+    },
+    {
+      "keyword": "files",
+      "score": 5,
+      "frequency": 1.25,
+      "count": 1960
+    },
+    {
+      "keyword": "data",
+      "score": 4,
+      "frequency": 1.2,
+      "count": 1872
+    },
+    {
+      "keyword": "view",
+      "score": 4,
+      "frequency": 1.13,
+      "count": 1764
+    },
+    {
+      "keyword": "upload",
+      "score": 4,
+      "frequency": 1.11,
+      "count": 1739
+    },
+    {
+      "keyword": "online",
+      "score": 4,
+      "frequency": 1.1,
+      "count": 1721
+    },
+    {
+      "keyword": "sites",
+      "score": 4,
+      "frequency": 1.07,
+      "count": 1670
+    },
+    {
+      "keyword": "submit",
+      "score": 4,
+      "frequency": 1.06,
+      "count": 1665
+    }
+  ],
+  "brand_impersonation": [
+    {
+      "brand": "paypal",
+      "score": 30,
+      "frequency": 6.57,
+      "count": 10275
+    },
+    {
+      "brand": "secure",
+      "score": 21,
+      "frequency": 3.56,
+      "count": 5575
+    },
+    {
+      "brand": "account",
+      "score": 14,
+      "frequency": 2.5,
+      "count": 3910
+    },
+    {
+      "brand": "google",
+      "score": 13,
+      "frequency": 2.25,
+      "count": 3514
+    },
+    {
+      "brand": "bank",
+      "score": 5,
+      "frequency": 0.85,
+      "count": 1337
+    },
+    {
+      "brand": "verify",
+      "score": 3,
+      "frequency": 0.54,
+      "count": 840
+    },
+    {
+      "brand": "ebay",
+      "score": 2,
+      "frequency": 0.37,
+      "count": 573
+    },
+    {
+      "brand": "twitter",
+      "score": 1,
+      "frequency": 0.28,
+      "count": 433
+    },
+    {
+      "brand": "facebook",
+      "score": 1,
+      "frequency": 0.19,
+      "count": 295
+    },
+    {
+      "brand": "microsoft",
+      "score": 1,
+      "frequency": 0.17,
+      "count": 271
+    },
+    {
+      "brand": "apple",
+      "score": 1,
+      "frequency": 0.17,
+      "count": 268
+    },
+    {
+      "brand": "chase",
+      "score": 0,
+      "frequency": 0.16,
+      "count": 257
+    },
+    {
+      "brand": "wellsfargo",
+      "score": 0,
+      "frequency": 0.16,
+      "count": 254
+    },
+    {
+      "brand": "amazon",
+      "score": 0,
+      "frequency": 0.12,
+      "count": 190
+    },
+    {
+      "brand": "citi",
+      "score": 0,
+      "frequency": 0.06,
+      "count": 101
+    },
+    {
+      "brand": "linkedin",
+      "score": 0,
+      "frequency": 0.03,
+      "count": 45
+    }
+  ],
+  "structural_indicators": [
+    {
+      "type": "at_symbol",
+      "score": 35,
+      "frequency": 1.16
+    }
+  ]
+}
