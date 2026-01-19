@@ -424,6 +424,61 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
     {% if results %}
     <div class="results-card">
+
+        <!-- Simple/Technical Mode Toggle -->
+        <div style="text-align: center; margin: 20px 0;">
+            <button onclick="toggleView()" id="viewToggle" style="
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 16px;
+                font-weight: 600;
+                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            ">
+                💡 Switch to Technical View
+            </button>
+        </div>
+
+        <!-- Simple Mode (Default View) -->
+        <div id="simpleView">
+            {% if simple_explanation %}
+            <div style="text-align: center; margin: 30px 0;">
+                <div style="font-size: 64px; margin-bottom: 15px;">{{ simple_explanation.icon }}</div>
+                <h2 style="margin: 0; font-size: 28px; color: #e0e6ed;">{{ simple_explanation.title }}</h2>
+            </div>
+
+            {% if simple_explanation.simple_reasons %}
+            <div style="background: rgba(255, 87, 108, 0.1); padding: 25px; border-radius: 12px; margin: 25px 0; border-left: 4px solid #f5576c;">
+                <h3 style="margin-top: 0; color: #f5576c; font-size: 20px;">⚠️ What's wrong with this site:</h3>
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                    {% for reason in simple_explanation.simple_reasons %}
+                    <li style="margin: 12px 0; padding-left: 30px; position: relative; font-size: 16px; line-height: 1.6;">
+                        <span style="position: absolute; left: 0; color: #f5576c; font-weight: bold;">✗</span>
+                        {{ reason }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <div style="background: rgba(102, 126, 234, 0.15); padding: 25px; border-radius: 12px; border-left: 4px solid #667eea;">
+                <h3 style="margin-top: 0; color: #667eea; font-size: 20px;">💡 What you should do:</h3>
+                <ul style="list-style: none; padding: 0; margin: 0;">
+                    {% for rec in simple_explanation.recommendations %}
+                    <li style="margin: 12px 0; font-size: 16px; line-height: 1.6;">
+                        {{ rec }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Technical Mode (Hidden by Default) -->
+        <div id="technicalView" style="display: none;">
         <div class="verdict-header">
             <div class="verdict-title verdict-{{ results.risk_level | e }}">
                 {{ results.verdict | e }}
@@ -496,6 +551,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         </svg>
         <h3 style="color: #94a3b8; margin-bottom: 10px;">Enter a URL to begin scanning</h3>
         <p>Analyze websites for phishing, scams, and security vulnerabilities</p>
+            </div><!-- End Technical View -->
     </div>
     {% endif %}
     {% endif %}
