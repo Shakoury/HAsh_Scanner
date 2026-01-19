@@ -452,7 +452,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     maxlength="2048"
                 >
                 <button type="submit" class="scan-btn">Scan Now</button>
-                <a href="/" class="reset-btn">
+                <a href="/" class="reset-btn" style="display: flex; align-items: center; justify-content: center;">
                     <span class="scan-icon">🔄</span>
                     Reset
                 </a>
