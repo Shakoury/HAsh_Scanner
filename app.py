@@ -386,15 +386,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         }
     }
 
-        /* CSS-Only Toggle */
-        #viewToggle:checked ~ #technicalView {
-            display: block !important;
+        /* CSS-Only Toggle - Direct Control */
+        #viewToggle {
+            display: none;
         }
         
-        #viewToggle:checked ~ #simpleView {
-            display: none !important;
-        }
-        
+        /* When unchecked (default): show simple, hide technical */
         #viewToggle:not(:checked) ~ #simpleView {
             display: block !important;
         }
@@ -403,20 +400,30 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             display: none !important;
         }
         
-        #viewToggle:checked + label .simple-text {
-            display: none;
+        /* When checked: hide simple, show technical */
+        #viewToggle:checked ~ #simpleView {
+            display: none !important;
         }
         
-        #viewToggle:checked + label .tech-text {
-            display: inline;
+        #viewToggle:checked ~ #technicalView {
+            display: block !important;
         }
         
+        /* Button text switching */
         #viewToggle:not(:checked) + label .simple-text {
             display: inline;
         }
         
         #viewToggle:not(:checked) + label .tech-text {
             display: none;
+        }
+        
+        #viewToggle:checked + label .simple-text {
+            display: none;
+        }
+        
+        #viewToggle:checked + label .tech-text {
+            display: inline;
         }
         
         label[for="viewToggle"]:hover {
@@ -490,7 +497,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
 
         <!-- Simple Mode (Default View) -->
-        <div id="simpleView" class="view-content">
+        <div id="simpleView">
             {% if simple_explanation %}
             <div style="text-align: center; margin: 30px 0;">
                 <div style="font-size: 64px; margin-bottom: 15px;">{{ simple_explanation.icon }}</div>
@@ -525,7 +532,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         </div>
 
         <!-- Technical Mode (Hidden by Default) -->
-        <div id="technicalView" class="view-content" style="display: none;">
+        <div id="technicalView" style="display: none;">
         <div class="verdict-header">
             <div class="verdict-title verdict-{{ results.risk_level | e }}">
                 {{ results.verdict | e }}
