@@ -405,10 +405,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     maxlength="2048"
                 >
                 <button type="submit" class="scan-btn">Scan Now</button>
-                <button type="button" class="reset-btn" onclick="window.location.href='/'">
+                <a href="/" class="reset-btn">
                     <span class="scan-icon">🔄</span>
                     Reset
-                </button>
+                </a>
             </div>
         </form>
     </div>
