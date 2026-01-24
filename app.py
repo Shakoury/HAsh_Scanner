@@ -3,846 +3,272 @@ from enhanced_scanner import EnhancedScanner
 import re
 from urllib.parse import urlparse
 from security_middleware import SecurityMiddleware
-
+import time
 
 app = Flask(__name__)
 scanner = EnhancedScanner()
 security = SecurityMiddleware()
-security.init_app(app)  # ← Initialize
+security.init_app(app)
 
-# Security: Set secure session configuration
+# Secure session config
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Strict'
+
+# -----------------------------
+# Simple in-memory rate limiter
+# -----------------------------
+RATE_LIMIT = {}
+RATE_LIMIT_WINDOW = 60  # seconds
+RATE_LIMIT_MAX = 5      # requests per window
+
+def is_rate_limited(ip):
+    now = time.time()
+    window = RATE_LIMIT.get(ip, [])
+    window = [t for t in window if now - t < RATE_LIMIT_WINDOW]
+    if len(window) >= RATE_LIMIT_MAX:
+        RATE_LIMIT[ip] = window
+        return True
+    window.append(now)
+    RATE_LIMIT[ip] = window
+    return False
+
 
 HTML_TEMPLATE = """<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
-<meta http-equiv="X-Content-Type-Options" content="nosniff">
-<meta http-equiv="X-Frame-Options" content="DENY">
-<meta http-equiv="X-XSS-Protection" content="1; mode=block">
-<title>Website Legitimacy Scanner</title>
+<title>AEGLIX SHIELD</title>
+
 <style>
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap');
 
-    body {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
-        color: #e0e6ed;
-        min-height: 100vh;
-        overflow-x: hidden;
-        position: relative;
-    }
+* { margin:0; padding:0; box-sizing:border-box; }
 
-    body::before {
-        content: '';
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: 
-            radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
-            radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
-        pointer-events: none;
-        z-index: 0;
-    }
+body {
+    font-family: 'Inter', sans-serif;
+    background:#0a0a0a;
+    color:#eaeaea;
+    min-height:100vh;
+}
 
-    .container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 60px 20px;
-        position: relative;
-        z-index: 1;
-    }
+body::before {
+    content:'';
+    position:fixed;
+    inset:0;
+    background:
+      linear-gradient(rgba(0,255,157,.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,157,.03) 1px, transparent 1px);
+    background-size:50px 50px;
+    pointer-events:none;
+}
 
-    header {
-        text-align: center;
-        margin-bottom: 50px;
-    }
+.container {
+    max-width:1400px;
+    margin:auto;
+    padding:80px 40px;
+}
 
-    h1 {
-        font-size: 3rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        margin-bottom: 15px;
-        letter-spacing: -0.02em;
-    }
+h1 {
+    text-align:center;
+    font-size:4rem;
+    font-weight:900;
+    background:linear-gradient(135deg,#fff,#00ff9d);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    text-transform:uppercase;
+}
 
-    .subtitle {
-        font-size: 1.1rem;
-        color: #94a3b8;
-        font-weight: 400;
-    }
+.subtitle {
+    text-align:center;
+    color:#888;
+    letter-spacing:.15em;
+    margin-bottom:60px;
+}
 
-    .scan-section {
-        background: rgba(30, 41, 59, 0.5);
-        backdrop-filter: blur(20px);
-        border: 1px solid rgba(148, 163, 184, 0.1);
-        border-radius: 24px;
-        padding: 40px;
-        margin-bottom: 40px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    }
+.scan-box, .card {
+    background:rgba(18,18,18,.6);
+    border:1px solid rgba(0,255,157,.15);
+    backdrop-filter:blur(40px);
+    border-radius:20px;
+    padding:40px;
+    margin-bottom:40px;
+}
 
-    .input-container {
-        display: flex;
-        gap: 12px;
-        max-width: 700px;
-        margin: 0 auto;
-    }
+.input-row {
+    display:flex;
+    gap:16px;
+}
 
-    input[type="text"] {
-        flex: 1;
-        padding: 18px 24px;
-        font-size: 1rem;
-        background: rgba(15, 23, 42, 0.6);
-        border: 2px solid rgba(148, 163, 184, 0.2);
-        border-radius: 16px;
-        color: #e0e6ed;
-        outline: none;
-        transition: all 0.3s ease;
-    }
+input {
+    flex:1;
+    padding:18px;
+    background:#000;
+    border:2px solid rgba(0,255,157,.3);
+    border-radius:12px;
+    color:#fff;
+}
 
-    input[type="text"]:focus {
-        border-color: #60a5fa;
-        box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.1);
-    }
+button {
+    padding:18px 36px;
+    font-weight:800;
+    background:#00ff9d;
+    border:none;
+    border-radius:12px;
+    cursor:pointer;
+}
 
-    input[type="text"]::placeholder {
-        color: #64748b;
-    }
+.metric-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+    gap:20px;
+}
 
-    .scan-btn {
-        padding: 18px 36px;
-        font-size: 1rem;
-        font-weight: 600;
-        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-        border: none;
-        border-radius: 16px;
-        color: white;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
-    }
-        
-        .reset-btn {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-            border: none;
-            padding: 18px 36px;
-            font-size: 1rem;
-            font-weight: 600;
-            border-radius: 16px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
-            margin-left: 0;
-            text-decoration: none;
-            user-select: none;
-        }
-        
-        .reset-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(245, 87, 108, 0.6);
-        }
+.metric {
+    background:#000;
+    padding:28px;
+    border-radius:16px;
+    border:1px solid rgba(0,255,157,.2);
+    text-align:center;
+}
 
-    .scan-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 12px 32px rgba(59, 130, 246, 0.4);
-    }
+.metric span {
+    display:block;
+    font-size:2.4rem;
+    font-weight:900;
+    color:#00ff9d;
+}
 
-    .scan-btn:active {
-        transform: translateY(0);
-    }
+.indicator {
+    padding:18px;
+    border-radius:12px;
+    margin-bottom:12px;
+}
 
-    .results-card {
-        background: rgba(30, 41, 59, 0.5);
-        backdrop-filter: blur(20px);
-        border: 1px solid rgba(148, 163, 184, 0.1);
-        border-radius: 24px;
-        padding: 40px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        animation: slideIn 0.5s ease;
-    }
+.pos { border-left:4px solid #00ff9d; color:#00ff9d; }
+.warn { border-left:4px solid #ffea00; color:#ffea00; }
+.neg { border-left:4px solid #ff0055; color:#ff0055; }
+.phish { border-left:4px solid #ff00ff; color:#ff00ff; }
 
-    @keyframes slideIn {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .verdict-header {
-        text-align: center;
-        margin-bottom: 40px;
-        padding-bottom: 30px;
-        border-bottom: 1px solid rgba(148, 163, 184, 0.1);
-    }
-
-    .verdict-title {
-        font-size: 2rem;
-        font-weight: 700;
-        margin-bottom: 20px;
-    }
-
-    .verdict-critical { color: #ef4444; }
-    .verdict-high { color: #f97316; }
-    .verdict-medium { color: #eab308; }
-    .verdict-low { color: #22c55e; }
-
-    .metrics {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 20px;
-        margin-bottom: 40px;
-    }
-
-    .metric-card {
-        background: rgba(15, 23, 42, 0.4);
-        border: 1px solid rgba(148, 163, 184, 0.1);
-        border-radius: 16px;
-        padding: 20px;
-        text-align: center;
-    }
-
-    .metric-label {
-        font-size: 0.875rem;
-        color: #94a3b8;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 8px;
-    }
-
-    .metric-value {
-        font-size: 1.75rem;
-        font-weight: 700;
-        color: #e0e6ed;
-    }
-
-    .risk-bar-container {
-        margin: 30px 0;
-    }
-
-    .risk-bar-label {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 10px;
-        font-size: 0.875rem;
-        color: #94a3b8;
-    }
-
-    .risk-bar {
-        height: 12px;
-        background: rgba(15, 23, 42, 0.6);
-        border-radius: 10px;
-        overflow: hidden;
-        position: relative;
-    }
-
-    .risk-bar-fill {
-        height: 100%;
-        border-radius: 10px;
-        transition: width 1s ease, background 0.3s ease;
-    }
-
-    .risk-critical { background: linear-gradient(90deg, #ef4444, #dc2626); }
-    .risk-high { background: linear-gradient(90deg, #f97316, #ea580c); }
-    .risk-medium { background: linear-gradient(90deg, #eab308, #ca8a04); }
-    .risk-low { background: linear-gradient(90deg, #22c55e, #16a34a); }
-
-    .section {
-        margin-bottom: 40px;
-    }
-
-    .section-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        margin-bottom: 20px;
-        color: #e0e6ed;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .section-title::before {
-        content: '';
-        width: 4px;
-        height: 24px;
-        background: linear-gradient(180deg, #60a5fa, #8b5cf6);
-        border-radius: 2px;
-    }
-
-    .indicators-grid {
-        display: grid;
-        gap: 12px;
-    }
-
-    .indicator {
-        background: rgba(15, 23, 42, 0.4);
-        border-left: 3px solid;
-        border-radius: 12px;
-        padding: 16px 20px;
-        font-size: 0.95rem;
-        transition: all 0.3s ease;
-        word-wrap: break-word;
-    }
-
-    .indicator:hover {
-        background: rgba(15, 23, 42, 0.6);
-        transform: translateX(4px);
-    }
-
-    .indicator-positive {
-        border-color: #22c55e;
-        color: #86efac;
-    }
-
-    .indicator-warning {
-        border-color: #eab308;
-        color: #fde047;
-    }
-
-    .indicator-negative {
-        border-color: #ef4444;
-        color: #fca5a5;
-    }
-
-    .indicator-phishing {
-        border-color: #ec4899;
-        color: #f9a8d4;
-        background: rgba(236, 72, 153, 0.1);
-    }
-
-    .recommendation {
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
-        border: 1px solid rgba(96, 165, 250, 0.3);
-        border-radius: 16px;
-        padding: 24px;
-        text-align: center;
-        font-size: 1.05rem;
-        font-weight: 500;
-        line-height: 1.6;
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 60px 20px;
-        color: #64748b;
-    }
-
-    .empty-state svg {
-        width: 120px;
-        height: 120px;
-        margin-bottom: 20px;
-        opacity: 0.5;
-    }
-
-    .error-message {
-        background: rgba(239, 68, 68, 0.1);
-        border: 1px solid rgba(239, 68, 68, 0.3);
-        border-radius: 16px;
-        padding: 20px;
-        margin-bottom: 20px;
-        color: #fca5a5;
-        text-align: center;
-    }
-
-    .error-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        margin-bottom: 10px;
-        color: #ef4444;
-    }
-
-    @media (max-width: 768px) {
-        h1 {
-            font-size: 2rem;
-        }
-
-        .input-container {
-            flex-direction: column;
-        }
-
-        .metrics {
-            grid-template-columns: 1fr;
-        }
-    }
-
-        /* CSS-Only Toggle - Direct Control */
-        #viewToggle {
-            display: none;
-        }
-        
-        /* When unchecked (default): show simple, hide technical */
-        #viewToggle:not(:checked) ~ #simpleView {
-            display: block !important;
-        }
-        
-        #viewToggle:not(:checked) ~ #technicalView {
-            display: none !important;
-        }
-        
-        /* When checked: hide simple, show technical */
-        #viewToggle:checked ~ #simpleView {
-            display: none !important;
-        }
-        
-        #viewToggle:checked ~ #technicalView {
-            display: block !important;
-        }
-        
-        /* Button text switching */
-        #viewToggle:not(:checked) + label .simple-text {
-            display: inline;
-        }
-        
-        #viewToggle:not(:checked) + label .tech-text {
-            display: none;
-        }
-        
-        #viewToggle:checked + label .simple-text {
-            display: none;
-        }
-        
-        #viewToggle:checked + label .tech-text {
-            display: inline;
-        }
-        
-        label[for="viewToggle"]:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
-        }
+.error {
+    background:rgba(255,0,85,.1);
+    border:1px solid rgba(255,0,85,.3);
+    padding:28px;
+    border-radius:16px;
+    text-align:center;
+}
 </style>
 </head>
 <body>
+
 <div class="container">
-    <header>
-        <h1>Website Legitimacy Scanner</h1>
-        <p class="subtitle">Advanced phishing detection & security analysis</p>
-    </header>
+<h1>AEGLIX SHIELD</h1>
+<p class="subtitle">Advanced Website Trust & Phishing Defense</p>
 
-    <div class="scan-section">
-        <form method="get" id="scanForm">
-            <div class="input-container">
-                <input 
-                    type="text" 
-                    name="url" 
-                    id="urlInput"
-                    placeholder="Enter website URL (e.g., https://example.com)"
-                    value="{{ url | e }}"
-                    required
-                    maxlength="2048"
-                >
-                <button type="submit" class="scan-btn">Scan Now</button>
-                <a href="/" class="reset-btn" style="display: inline-flex; align-items: center; justify-content: center; text-decoration: none;">
-                    <span class="scan-icon">🔄</span>
-                    Reset
-                </a>
-            </div>
-        </form>
-    </div>
-
-    {% if error %}
-    <div class="error-message">
-        <div class="error-title">⚠️ Invalid Input</div>
-        {{ error | e }}
-    </div>
-    {% endif %}
-
-    {% if results %}
-    <div class="results-card">
-        
-        <!-- CSS Toggle Checkbox -->
-        <input type="checkbox" id="viewToggle" style="display: none;">
-        <label for="viewToggle" style="
-            display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-            user-select: none;
-            transition: all 0.3s ease;
-            margin: 20px auto;
-            display: block;
-            width: fit-content;
-        ">
-        <span class="simple-text" style="display: inline;">💡 Switch to Technical View</span><span class="tech-text" style="display: none;">🔙 Switch to Simple View</span></label>
-
-
-        <!-- Simple/Technical Mode Toggle -->
-
-
-        <!-- Simple Mode (Default View) -->
-        <div id="simpleView">
-            {% if simple_explanation %}
-            <div style="text-align: center; margin: 30px 0;">
-                <div style="font-size: 64px; margin-bottom: 15px;">{{ simple_explanation.icon }}</div>
-                <h2 style="margin: 0; font-size: 28px; color: #e0e6ed;">{{ simple_explanation.title }}</h2>
-            </div>
-
-            {% if simple_explanation.simple_reasons %}
-            <div style="background: rgba(255, 87, 108, 0.1); padding: 25px; border-radius: 12px; margin: 25px 0; border-left: 4px solid #f5576c;">
-                <h3 style="margin-top: 0; color: #f5576c; font-size: 20px;">⚠️ What's wrong with this site:</h3>
-                <ul style="list-style: none; padding: 0; margin: 0;">
-                    {% for reason in simple_explanation.simple_reasons %}
-                    <li style="margin: 12px 0; padding-left: 30px; position: relative; font-size: 16px; line-height: 1.6;">
-                        <span style="position: absolute; left: 0; color: #f5576c; font-weight: bold;">✗</span>
-                        {{ reason }}
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
-            {% endif %}
-
-            <div style="background: rgba(102, 126, 234, 0.15); padding: 25px; border-radius: 12px; border-left: 4px solid #667eea;">
-                <h3 style="margin-top: 0; color: #667eea; font-size: 20px;">💡 What you should do:</h3>
-                <ul style="list-style: none; padding: 0; margin: 0;">
-                    {% for rec in simple_explanation.recommendations %}
-                    <li style="margin: 12px 0; font-size: 16px; line-height: 1.6;">
-                        {{ rec }}
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- Technical Mode (Hidden by Default) -->
-        <div id="technicalView" style="display: none;">
-        <div class="verdict-header">
-            <div class="verdict-title verdict-{{ results.risk_level | e }}">
-                {{ results.verdict | e }}
-            </div>
-        </div>
-
-        <div class="metrics">
-            <div class="metric-card">
-                <div class="metric-label">Risk Score</div>
-                <div class="metric-value">{{ results.risk_score | int }}/100</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Confidence</div>
-                <div class="metric-value">{{ results.confidence | title | e }}</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Risk Level</div>
-                <div class="metric-value">{{ results.risk_level | title | e }}</div>
-            </div>
-            {% if results.is_phishing %}
-            <div class="metric-card">
-                <div class="metric-label">Phishing</div>
-                <div class="metric-value" style="color: #ec4899;">Detected</div>
-            </div>
-            {% endif %}
-        </div>
-
-        <div class="risk-bar-container">
-            <div class="risk-bar-label">
-                <span>Risk Assessment</span>
-                <span>{{ results.risk_score | int }}%</span>
-            </div>
-            <div class="risk-bar">
-                <div class="risk-bar-fill risk-{{ results.risk_level | e }}" style="width: {{ results.risk_score | int }}%"></div>
-            </div>
-        </div>
-
-        {% if results.indicators.positive or results.indicators.warnings or results.indicators.negative or results.indicators.phishing %}
-        <div class="section">
-            <h3 class="section-title">Security Indicators</h3>
-            <div class="indicators-grid">
-                {% for item in results.indicators.phishing %}
-                <div class="indicator indicator-phishing">{{ item | e }}</div>
-                {% endfor %}
-                {% for item in results.indicators.negative %}
-                <div class="indicator indicator-negative">{{ item | e }}</div>
-                {% endfor %}
-                {% for item in results.indicators.warnings %}
-                <div class="indicator indicator-warning">{{ item | e }}</div>
-                {% endfor %}
-                {% for item in results.indicators.positive %}
-                <div class="indicator indicator-positive">{{ item | e }}</div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-
-        <div class="section">
-            <h3 class="section-title">Recommendation</h3>
-            <div class="recommendation">
-                {{ results.recommendation | e }}
-            </div>
-        </div>
-    </div>
-    {% else %}
-    {% if not error %}
-    <div class="empty-state">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-        </svg>
-        <h3 style="color: #94a3b8; margin-bottom: 10px;">Enter a URL to begin scanning</h3>
-        <p>Analyze websites for phishing, scams, and security vulnerabilities</p>
-            </div><!-- End Technical View -->
-    </div>
-    {% endif %}
-    {% endif %}
+<div class="scan-box">
+<form method="post">
+<div class="input-row">
+<input name="url" placeholder="https://example.com" value="{{ url|e }}" required>
+<button>SCAN</button>
+</div>
+</form>
 </div>
 
+{% if error %}
+<div class="error">{{ error }}</div>
+{% endif %}
 
+{% if results %}
+<div class="card">
+
+<div class="metric-grid">
+<div class="metric">Risk Score<span>{{ results.risk_score }}/100</span></div>
+<div class="metric">Risk Level<span>{{ results.risk_level|title }}</span></div>
+<div class="metric">Confidence<span>{{ results.confidence|title }}</span></div>
+</div>
+
+<h3 style="margin-top:40px;">Security Indicators</h3>
+
+{% for i in results.indicators.phishing %}
+<div class="indicator phish">{{ i }}</div>
+{% endfor %}
+
+{% for i in results.indicators.negative %}
+<div class="indicator neg">{{ i }}</div>
+{% endfor %}
+
+{% for i in results.indicators.warnings %}
+<div class="indicator warn">{{ i }}</div>
+{% endfor %}
+
+{% for i in results.indicators.positive %}
+<div class="indicator pos">{{ i }}</div>
+{% endfor %}
+
+</div>
+{% endif %}
+</div>
 </body>
-</html>"""
+</html>
+"""
+
 
 def validate_url(url):
-    """Strict URL validation - reject anything that's not a proper URL"""
-    if not url:
-        return None, "URL is required"
-    
-    # Remove leading/trailing whitespace
-    url = url.strip()
-    
-    # Length check
-    if len(url) > 2048:
-        return None, "URL is too long (maximum 2048 characters)"
-    
-    # Check for HTML/script tags - instant rejection
-    dangerous_patterns = [
-        '<script', '</script>', '<img', '<iframe', '<object', '<embed',
-        'onerror=', 'onload=', 'onclick=', 'javascript:', 'vbscript:',
-        'data:text/html', '<svg', '<body', '<html', 'onfocus=', 'onmouseover='
-    ]
-    
-    url_lower = url.lower()
-    for pattern in dangerous_patterns:
-        if pattern in url_lower:
-            return None, f"Invalid input detected. Please enter a valid website URL only."
-    
-    # Must start with http:// or https:// or be a domain name
-    has_protocol = url.startswith(('http://', 'https://'))
-    
-    if not has_protocol:
-        # Check if it looks like a domain before adding protocol
-        # Must contain at least one dot and valid characters
-        domain_pattern = re.compile(
-            r'^[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?'  # subdomain or domain
-            r'(\.[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)*'  # more domains
-            r'\.[a-zA-Z]{2,}$'  # TLD
-        )
-        
-        # Extract just the domain part (before any path/query)
-        domain_part = url.split('/')[0].split('?')[0].split('#')[0]
-        
-        if not domain_pattern.match(domain_part):
-            return None, "Invalid URL format. Please enter a valid domain name (e.g., example.com) or full URL (e.g., https://example.com)"
-        
-        url = 'https://' + url
-    
-    # Parse the URL
-    try:
-        parsed = urlparse(url)
-    except Exception:
-        return None, "Unable to parse URL. Please check the format."
-    
-    # Verify scheme is http or https
-    if parsed.scheme not in ['http', 'https']:
-        return None, f"Unsupported protocol '{parsed.scheme}'. Only HTTP and HTTPS are allowed."
-    
-    # Must have a hostname
-    if not parsed.hostname:
-        return None, "Invalid URL: No hostname found"
-    
-    # Hostname validation - must be valid domain or IP
-    hostname = parsed.hostname.lower()
-    
-    # Check for obviously invalid hostnames
-    if len(hostname) < 1 or len(hostname) > 253:
-        return None, "Invalid hostname length"
-    
-    # Reject if hostname contains only special characters or numbers
-    if not re.search(r'[a-zA-Z]', hostname):
-        return None, "Invalid hostname format"
-    
-    # Additional validation for domain format
-    # Must have at least one dot (unless localhost) or be a valid IP
-    if hostname != 'localhost':
-        # Check if it's an IP address
-        ip_pattern = re.compile(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$')
-        if ip_pattern.match(hostname):
-            # Validate IP ranges
-            parts = hostname.split('.')
-            if not all(0 <= int(part) <= 255 for part in parts):
-                return None, "Invalid IP address"
-        else:
-            # Must be a domain with at least one dot
-            if '.' not in hostname:
-                return None, "Invalid domain format. Domains must contain at least one dot (e.g., example.com)"
-            
-            # Validate TLD
-            tld = hostname.split('.')[-1]
-            if len(tld) < 2:
-                return None, "Invalid top-level domain"
-            
-            if not re.match(r'^[a-z]{2,}$', tld):
-                return None, "Invalid top-level domain format"
-    
-    # Final comprehensive validation
-    full_url_pattern = re.compile(
-        r'^https?://'  # http:// or https://
-        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?)|'  # domain
-        r'localhost|'  # localhost
-        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # or IP
-        r'(?::\d+)?'  # optional port
-        r'(?:/?|[/?]\S+)?$',  # optional path
-        re.IGNORECASE
-    )
-    
-    if not full_url_pattern.match(url):
-        return None, "Invalid URL format. Please enter a valid website URL (e.g., https://example.com)"
-    
+    if not re.match(r'^https?://', url):
+        return None, "URL must start with http:// or https://"
+
+    parsed = urlparse(url)
+    if not parsed.hostname or '.' not in parsed.hostname:
+        return None, "Invalid domain"
+
     return url, None
 
 
-def get_simple_explanation(results):
-    """Generate simple, non-technical explanation of scan results"""
-    score = results.get('risk_score', 0)
-    reasons = results.get('reasons', [])
-    
-    # Determine risk level
-    if score >= 35:
-        level = 'dangerous'
-        icon = '🚨'
-        title = 'HIGH RISK - This is likely a SCAM'
-    elif score >= 20:
-        level = 'suspicious'
-        icon = '⚠️'
-        title = 'SUSPICIOUS - Be Very Careful'
-    elif score >= 10:
-        level = 'minor'
-        icon = '⚡'
-        title = 'MINOR CONCERNS - Proceed with Caution'
-    else:
-        level = 'safe'
-        icon = '✅'
-        title = 'APPEARS SAFE'
-    
-    # Simple explanations
-    simple_reasons = []
-    for reason in reasons:
-        if 'brand' in reason.lower() or 'impersonation' in reason.lower():
-            simple_reasons.append("This site is pretending to be a well-known company, but it's FAKE")
-        elif 'tld' in reason.lower() or '.tk' in reason or '.ml' in reason:
-            simple_reasons.append("The web address ending is commonly used by scammers")
-        elif 'domain age' in reason.lower() or 'new' in reason.lower():
-            simple_reasons.append("This site was created very recently (scammers create new sites)")
-        elif 'typo' in reason.lower():
-            simple_reasons.append("The web address has a sneaky spelling trick to fool you")
-        elif 'ip' in reason.lower() or 'address' in reason.lower():
-            simple_reasons.append("Real companies don't use number addresses like this")
-        elif 'subdomain' in reason.lower():
-            simple_reasons.append("The web address is unusually long and complicated")
-        elif 'path' in reason.lower() or 'login' in reason.lower():
-            simple_reasons.append("This page is asking for passwords on a suspicious site")
-        elif 'ssl' in reason.lower() or 'https' in reason.lower():
-            simple_reasons.append("This site doesn't use secure encryption (no padlock icon)")
-        else:
-            # Generic fallback
-            simple_reasons.append(reason)
-    
-    # Recommendations based on level
-    recommendations = {
-        'dangerous': [
-            "❌ Don't enter passwords, credit cards, or personal information",
-            "❌ Close this page immediately",
-            "❌ If you got this link in an email or text message, DELETE it",
-            "✅ Type the real company's website address yourself instead"
-        ],
-        'suspicious': [
-            "⚠️ Don't trust this site with sensitive information",
-            "⚠️ Double-check the web address is spelled correctly",
-            "⚠️ When in doubt, type the website address yourself",
-            "⚠️ Don't download anything from this site"
-        ],
-        'minor': [
-            "⚡ The site looks mostly safe, but has some unusual features",
-            "⚡ Verify the web address is exactly correct",
-            "⚡ Look for the padlock icon in your browser",
-            "⚡ Be careful with personal information"
-        ],
-        'safe': [
-            "✅ This site appears to be legitimate",
-            "✅ Always verify you're on the correct website",
-            "✅ Look for the padlock icon for a secure connection"
-        ]
-    }
-    
-    return {
-        'icon': icon,
-        'title': title,
-        'level': level,
-        'simple_reasons': simple_reasons[:5],  # Top 5 reasons
-        'recommendations': recommendations[level]
-    }
-
-
-@app.route('/', methods=['GET'])
+@app.route('/', methods=['GET', 'POST'])
 @security.protect
 def index():
-    url = request.args.get('url', '').strip()
+    url = ""
     results = None
     error = None
-    simple_explanation = None
-    original_input = url  # Store original for display
-    
-    if url:
-        # Validate URL with strict checks
-        validated_url, error_msg = validate_url(url)
-        
-        if error_msg:
-            error = error_msg
-            url = original_input  # Show what they entered
+
+    if request.method == 'POST':
+        ip = request.remote_addr
+        if is_rate_limited(ip):
+            error = "Too many scans. Please wait a minute."
         else:
-            try:
-                # Scan the URL
-                results = scanner.scan(validated_url)
-                simple_explanation = get_simple_explanation(results)
-                url = validated_url
-            except Exception as e:
-                error = "An error occurred while scanning the URL. The site may be unreachable or invalid."
-                # Log the error for debugging (in production, use proper logging)
-                app.logger.error(f"Scan error for {validated_url}: {str(e)}")
-    
-    return render_template_string(HTML_TEMPLATE, url=url or '', results=results, error=error, simple_explanation=simple_explanation if results else None)
+            url = request.form.get('url', '').strip()
+            valid, err = validate_url(url)
+            if err:
+                error = err
+            else:
+                try:
+                    results = scanner.scan(valid)
+                except Exception:
+                    error = "Scan failed. Site unreachable or blocked."
+
+    return render_template_string(
+        HTML_TEMPLATE,
+        url=url,
+        results=results,
+        error=error
+    )
+
 
 @app.after_request
-def add_security_headers(response):
-    """Add security headers to all responses"""
-    response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-Frame-Options'] = 'DENY'
-    response.headers['X-XSS-Protection'] = '1; mode=block'
-    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
-    response.headers['Content-Security-Policy'] = "default-src 'self'; style-src 'unsafe-inline'; script-src 'none'; object-src 'none';"
-    return response
+def security_headers(resp):
+    resp.headers['X-Frame-Options'] = 'DENY'
+    resp.headers['X-Content-Type-Options'] = 'nosniff'
+    resp.headers['Referrer-Policy'] = 'no-referrer'
+    resp.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
+    resp.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src https://fonts.gstatic.com; "
+        "script-src 'none'; object-src 'none';"
+    )
+    return resp
+
 
 if __name__ == '__main__':
-    # Security: Disable debug mode in production
     app.run(host='0.0.0.0', port=5000, debug=False)
